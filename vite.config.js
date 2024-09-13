@@ -4,6 +4,12 @@ import { readFileSync } from "node:fs";
 import { promisify } from "node:util";
 import { defineConfig } from "vite";
 
+const execAsync = promisify(exec);
+
+function asCommand(content) {
+  return `./node_modules/.bin/bsc -bs-package-name svelte-rescript -bs-package-output esmodule:.:esmodule -I lib/bs/src -e "${content}"`;
+}
+
 const rescriptPreprocess = () => {
 	return {
 		name: 'svelte-rescript',
@@ -16,14 +22,15 @@ const rescriptPreprocess = () => {
 		 */
 		script: async ({ content, attributes }) => {
 			if (attributes.lang == 'res') {
-        console.info('content', content)
-        const cmd = `./node_modules/.bin/bsc -bs-package-name svelte-rescript -bs-package-output esmodule:.:esmodule -o tmp -I /home/maciej/Desktop/svelte-test/src/ -e "${content}"`;
+        const cmd = asCommand(content);
 
-				await promisify(exec)(cmd);
-        const jsContent = readFileSync('tmpesmodule').toString();
+				await execAsync(cmd);
+        const code = readFileSync('tmpesmodule').toString().replace('./src/', './');
+
+        //console.log(code);
 
 				return {
-					code: jsContent
+					code,
 				};
 			}
 		}
@@ -37,7 +44,7 @@ export default defineConfig({
       preprocess: [
         vitePreprocess(),
         rescriptPreprocess(),
-      ]
+      ],
     })
   ],
 });
